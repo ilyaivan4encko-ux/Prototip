@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ru" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsureFlow — Калькулятор страхового полиса</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eefbf7',
+                            100: '#d4f5e9',
+                            200: '#adebd6',
+                            300: '#6fdbb7',
+                            400: '#3cc598',
+                            500: '#1aab80',
+                            600: '#0f8b67',
+                            700: '#0d6f54',
+                            800: '#0d5845',
+                            900: '#0b4839',
+                        },
+                        navy: {
+                            50: '#eff3fb',
+                            100: '#dce5f5',
+                            200: '#bfd0ed',
+                            300: '#94b2e0',
+                            400: '#628ed0',
+                            500: '#3f6fbb',
+                            600: '#2e57a0',
+                            700: '#264682',
+                            800: '#233c6c',
+                            900: '#1a2d52',
+                            950: '#0f1c36',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --transition-speed: 250ms;
+        }
+
+        /* Smooth theme transitions */
+        html,
+        body {
+            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        html.dark {
+            color-scheme: dark;
+        }
+
+        /* Card hover effects */
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+        }
+        .dark .card-hover:hover {
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Selected card glow */
+        .card-selected {
+            box-shadow: 0 0 0 3px #1aab80, 0 12px 28px -8px rgba(26, 171, 128, 0.3) !important;
+            border-color: #1aab80 !important;
+        }
+        .dark .card-selected {
+            box-shadow: 0 0 0 3px #3cc598, 0 12px 28px -8px rgba(60, 197, 152, 0.4) !important;
+            border-color: #3cc598 !important;
+        }
+
+        /* Step transition */
+        .step-content {
+            animation: fadeSlideIn 0.4s ease-out;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Progress bar animation */
+        .progress-fill {
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Tooltip */
+        .tooltip-trigger {
+            cursor: help;
+            border-bottom: 1px dashed currentColor;
+        }
+        .tooltip-content {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        .tooltip-trigger:hover+.tooltip-content,
+        .tooltip-content:hover {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        /* Risk badge */
+        .risk-low {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .risk-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .risk-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .dark .risk-low {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+        .dark .risk-medium {
+            background: #78350f;
+            color: #fcd34d;
+        }
+        .dark .risk-high {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-report,
+            #printable-report * {
+                visibility: visible;
+            }
+            #printable-report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 2rem;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900 dark:bg-navy-950 dark:text-gray-100 font-sans antialiased transition-colors duration-300">
+
+    <!-- ==================== HEADER ==================== -->
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-navy-900/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-700/40 transition-colors duration-300">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/25">
+                    <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-navy-900 dark:text-white">Insure<span class="text-brand-500">Flow</span></span>
+            </div>
+
+            <!-- Theme Toggle + Reset -->
+            <div class="flex items-center gap-2">
+                <button id="resetBtn" title="Начать заново" class="no-print p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-navy-800 transition-all duration-200 hidden">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+                <button id="themeToggle" class="p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-navy-800 transition-all duration-200" title="Переключить тему">
+                    <!-- Sun icon (visible in dark mode) -->
+                    <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <!-- Moon icon (visible in light mode) -->
+                    <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        <!-- Progress Bar -->
+        <div class="mb-8 sm:mb-10 no-print">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Шаг <span id="currentStepLabel">1</span> из 4</span>
+                <span class="text-sm font-medium text-brand-600 dark:text-brand-400" id="progressPercent">25%</span>
+            </div>
+            <div class="h-2.5 bg-gray-200 dark:bg-navy-800 rounded-full overflow-hidden shadow-inner">
+                <div id="progressFill" class="progress-fill h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-full shadow-sm" style="width: 25%;"></div>
+            </div>
+            <!-- Step indicators -->
+            <div class="flex justify-between mt-3 px-1">
+                <span class="step-dot w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 bg-brand-500 text-white shadow-md shadow-brand-500/30" data-step="1">1</span>
+                <span class="step-dot w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 bg-gray-200 dark:bg-navy-800 text-gray-500 dark:text-gray-400" data-step="2">2</span>
+                <span class="step-dot w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 bg-gray-200 dark:bg-navy-800 text-gray-500 dark:text-gray-400" data-step="3">3</span>
+                <span class="step-dot w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 bg-gray-200 dark:bg-navy-800 text-gray-500 dark:text-gray-400" data-step="4">4</span>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 1: Выбор типа страхования ==================== -->
+        <section id="step1" class="step-content">
+            <h2 class="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white mb-2">Выберите тип страхования</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-6 sm:mb-8">Мы подберём оптимальный тариф под ваши потребности</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <!-- Автострахование -->
+                <div class="insurance-card card-hover bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 sm:p-6 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group"
+                data-type="auto" role="button" tabindex="0">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-brand-500/8 rounded-bl-full -mr-4 -mt-4 transition-all duration-300 group-hover:scale-150"></div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-900/30 flex items-center justify-center mb-4 text-3xl">🚗</div>
+                    <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-1">Автострахование</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">ОСАГО и КАСКО для легковых автомобилей</p>
+                    <span class="inline-block mt-3 text-xs font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-2.5 py-1 rounded-full">от 3 500 ₽/год</span>
+                </div>
+            </div>
+
+            <!-- Страхование недвижимости -->
+            <div class="insurance-card card-hover bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 sm:p-6 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group"
+            data-type="property" role="button" tabindex="0">
+            <div class="absolute top-0 right-0 w-20 h-20 bg-amber-500/8 rounded-bl-full -mr-4 -mt-4 transition-all duration-300 group-hover:scale-150"></div>
+            <div class="relative z-10">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center mb-4 text-3xl">🏠</div>
+                <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-1">Страхование недвижимости</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Защита квартиры, дома и имущества</p>
+                <span class="inline-block mt-3 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-full">от 2 000 ₽/год</span>
+            </div>
+        </div>
+
+        <!-- Страхование здоровья -->
+        <div class="insurance-card card-hover bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 sm:p-6 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group"
+        data-type="health" role="button" tabindex="0">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-rose-500/8 rounded-bl-full -mr-4 -mt-4 transition-all duration-300 group-hover:scale-150"></div>
+        <div class="relative z-10">
+            <div class="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center mb-4 text-3xl">❤️</div>
+            <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-1">Здоровье и жизнь</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">ДМС, страхование жизни и здоровья</p>
+            <span class="inline-block mt-3 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20 px-2.5 py-1 rounded-full">от 5 000 ₽/год</span>
+        </div>
+    </div>
+
+    <!-- Страхование путешествий -->
+    <div class="insurance-card card-hover bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-5 sm:p-6 cursor-pointer select-none transition-all duration-300 relative overflow-hidden group"
+    data-type="travel" role="button" tabindex="0">
+    <div class="absolute top-0 right-0 w-20 h-20 bg-sky-500/8 rounded-bl-full -mr-4 -mt-4 transition-all duration-300 group-hover:scale-150"></div>
+    <div class="relative z-10">
+        <div class="w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-900/30 flex items-center justify-center mb-4 text-3xl">✈️</div>
+        <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-1">Путешествия</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Страхование для поездок по РФ и за рубеж</p>
+        <span class="inline-block mt-3 text-xs font-medium text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/20 px-2.5 py-1 rounded-full">от 800 ₽/поездка</span>
+    </div>
+</div>
+</div>
+<div id="step1Error" class="mt-4 text-sm text-red-500 dark:text-red-400 hidden text-center"></div>
+</section>
+
+<!-- ==================== STEP 2: Ввод данных ==================== -->
+<section id="step2" class="step-content hidden">
+    <h2 class="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white mb-2">Данные для расчёта</h2>
+    <p class="text-gray-500 dark:text-gray-400 mb-6" id="step2Subtitle">Заполните информацию для точного расчёта стоимости</p>
+
+    <!-- Форма АВТО -->
+    <form id="formAuto" class="insurance-form hidden space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Возраст водителя <span class="tooltip-trigger text-brand-500">ℹ️</span></label>
+                <span class="tooltip-content absolute z-20 bg-navy-900 dark:bg-white text-white dark:text-navy-900 text-xs rounded-lg px-3 py-2 shadow-xl max-w-[200px] block">Чем моложе водитель, тем выше риск ДТП по статистике</span>
+                <input type="number" id="driverAge" min="16" max="90" placeholder="Например: 30" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Стаж вождения (лет) <span class="tooltip-trigger text-brand-500">ℹ️</span></label>
+                <span class="tooltip-content absolute z-20 bg-navy-900 dark:bg-white text-white dark:text-navy-900 text-xs rounded-lg px-3 py-2 shadow-xl max-w-[200px] block">Стаж менее 3 лет значительно повышает коэффициент риска</span>
+                <input type="number" id="drivingExp" min="0" max="70" placeholder="Например: 5" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Марка автомобиля</label>
+                <select id="carBrand" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="">Выберите марку</option>
+                    <option value="Lada">Lada (ВАЗ)</option>
+                    <option value="Toyota">Toyota</option>
+                    <option value="Hyundai">Hyundai</option>
+                    <option value="Kia">Kia</option>
+                    <option value="Volkswagen">Volkswagen</option>
+                    <option value="BMW">BMW</option>
+                    <option value="Mercedes">Mercedes-Benz</option>
+                    <option value="Audi">Audi</option>
+                    <option value="Renault">Renault</option>
+                    <option value="Skoda">Skoda</option>
+                    <option value="Other">Другая</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Модель</label>
+                <input type="text" id="carModel" placeholder="Например: Camry" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Год выпуска</label>
+                <input type="number" id="carYear" min="1970" max="2026" placeholder="Например: 2020" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Мощность двигателя (л.с.) <span class="tooltip-trigger text-brand-500">ℹ️</span></label>
+                <span class="tooltip-content absolute z-20 bg-navy-900 dark:bg-white text-white dark:text-navy-900 text-xs rounded-lg px-3 py-2 shadow-xl max-w-[200px] block">Мощные автомобили статистически чаще попадают в аварии</span>
+                <input type="number" id="enginePower" min="30" max="800" placeholder="Например: 150" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Стоимость автомобиля (₽)</label>
+                <input type="number" id="carValue" min="50000" max="50000000" placeholder="Например: 1500000" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Регион регистрации</label>
+                <select id="region" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="moscow">Москва</option>
+                    <option value="spb">Санкт-Петербург</option>
+                    <option value="kazan">Казань</option>
+                    <option value="novosibirsk">Новосибирск</option>
+                    <option value="ekaterinburg">Екатеринбург</option>
+                    <option value="other">Другой регион</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Страховых случаев за 3 года <span class="tooltip-trigger text-brand-500">ℹ️</span></label>
+                <span class="tooltip-content absolute z-20 bg-navy-900 dark:bg-white text-white dark:text-navy-900 text-xs rounded-lg px-3 py-2 shadow-xl max-w-[200px] block">Коэффициент бонус-малус: каждая авария повышает стоимость полиса</span>
+                <input type="number" id="accidents" min="0" max="20" placeholder="0" value="0" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+        </div>
+    </form>
+
+    <!-- Форма НЕДВИЖИМОСТЬ -->
+    <form id="formProperty" class="insurance-form hidden space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Тип недвижимости</label>
+                <select id="propertyType" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="apartment">Квартира</option>
+                    <option value="house">Частный дом</option>
+                    <option value="townhouse">Таунхаус</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Площадь (м²)</label>
+                <input type="number" id="propertyArea" min="10" max="1000" placeholder="Например: 55" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Год постройки</label>
+                <input type="number" id="buildingYear" min="1900" max="2026" placeholder="Например: 2010" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Стоимость недвижимости (₽)</label>
+                <input type="number" id="propertyValue" min="500000" max="100000000" placeholder="Например: 5000000" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Регион</label>
+                <select id="propertyRegion" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="moscow">Москва</option>
+                    <option value="spb">Санкт-Петербург</option>
+                    <option value="other">Другой регион</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Система безопасности</label>
+                <select id="securityLevel" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="none">Отсутствует</option>
+                    <option value="alarm">Сигнализация</option>
+                    <option value="security_company">Охрана ЧОП</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Форма ЗДОРОВЬЕ -->
+    <form id="formHealth" class="insurance-form hidden space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Возраст застрахованного</label>
+                <input type="number" id="healthAge" min="0" max="100" placeholder="Например: 35" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Сумма покрытия (₽)</label>
+                <select id="healthCoverage" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="500000">500 000 ₽ — Базовый</option>
+                    <option value="1000000" selected>1 000 000 ₽ — Оптимальный</option>
+                    <option value="3000000">3 000 000 ₽ — Расширенный</option>
+                    <option value="5000000">5 000 000 ₽ — Премиум</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Срок страхования</label>
+                <select id="healthTerm" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="1">1 год</option>
+                    <option value="2">2 года</option>
+                    <option value="3">3 года</option>
+                    <option value="5">5 лет</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Форма ПУТЕШЕСТВИЯ -->
+    <form id="formTravel" class="insurance-form hidden space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Направление</label>
+                <select id="travelDestination" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200 appearance-none">
+                    <option value="russia">По России</option>
+                    <option value="europe">Европа</option>
+                    <option value="asia">Азия</option>
+                    <option value="america">Америка</option>
+                    <option value="exotic">Экзотические страны</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Длительность (дней)</label>
+                <input type="number" id="travelDays" min="1" max="365" placeholder="Например: 14" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Возраст путешественника</label>
+                <input type="number" id="travelAge" min="0" max="100" placeholder="Например: 30" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Количество человек</label>
+                <input type="number" id="travelPersons" min="1" max="20" value="1" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all duration-200">
+            </div>
+        </div>
+    </form>
+    <div id="step2Error" class="mt-4 text-sm text-red-500 dark:text-red-400 hidden text-center"></div>
+</section>
+
+<!-- ==================== STEP 3: Дополнительные опции ==================== -->
+<section id="step3" class="step-content hidden">
+    <h2 class="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white mb-2">Дополнительные опции</h2>
+    <p class="text-gray-500 dark:text-gray-400 mb-6">Выберите расширения покрытия — они повлияют на итоговую стоимость</p>
+    <div id="optionsContainer" class="space-y-3">
+        <!-- Динамически заполняется JS -->
+    </div>
+</section>
+
+<!-- ==================== STEP 4: Результаты ==================== -->
+<section id="step4" class="step-content hidden">
+    <div id="resultsContainer">
+        <!-- Динамически заполняется JS -->
+    </div>
+</section>
+
+<!-- ==================== NAVIGATION BUTTONS ==================== -->
+<div class="flex items-center justify-between mt-8 sm:mt-10 no-print">
+    <button id="prevBtn" class="px-5 py-3 rounded-xl font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-navy-800 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        Назад
+    </button>
+    <button id="nextBtn" class="px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/25 hover:shadow-xl hover:shadow-brand-500/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none">
+        Далее
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    </button>
+</div>
+</main>
+
+<!-- ==================== PRINTABLE REPORT (скрытый) ==================== -->
+<div id="printable-report" style="display:none;"></div>
+
+<!-- ==================== TOAST NOTIFICATION ==================== -->
+<div id="toast" class="fixed bottom-6 right-6 z-[100] bg-navy-900 dark:bg-white text-white dark:text-navy-900 px-5 py-3.5 rounded-2xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-400 pointer-events-none text-sm font-medium flex items-center gap-2">
+    <svg class="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    <span id="toastMessage"></span>
+</div>
+
+<script>
+    (function() {
+        // ==================== DOM ЭЛЕМЕНТЫ ====================
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const resetBtn = document.getElementById('resetBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const progressFill = document.getElementById('progressFill');
+        const currentStepLabel = document.getElementById('currentStepLabel');
+        const progressPercent = document.getElementById('progressPercent');
+        const stepDots = document.querySelectorAll('.step-dot');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        // Step sections
+        const steps = {
+            1: document.getElementById('step1'),
+            2: document.getElementById('step2'),
+            3: document.getElementById('step3'),
+            4: document.getElementById('step4'),
+        };
+        const forms = {
+            auto: document.getElementById('formAuto'),
+            property: document.getElementById('formProperty'),
+            health: document.getElementById('formHealth'),
+            travel: document.getElementById('formTravel'),
+        };
+
+        // ==================== СОСТОЯНИЕ ====================
+        let currentStep = 1;
+        let insuranceType = null;
+        let calculatedBasePrice = 0;
+        let calculatedCoefficients = {};
+        let selectedOptions = {};
+        let finalPrice = 0;
+
+        // Загружаем сохранённые данные
+        function loadState() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('insureflow_state'));
+                if (saved) {
+                    currentStep = saved.currentStep || 1;
+                    insuranceType = saved.insuranceType || null;
+                    calculatedBasePrice = saved.calculatedBasePrice || 0;
+                    calculatedCoefficients = saved.calculatedCoefficients || {};
+                    selectedOptions = saved.selectedOptions || {};
+                    finalPrice = saved.finalPrice || 0;
+                    // Восстанавливаем значения полей форм
+                    if (saved.formData) {
+                        Object.entries(saved.formData).forEach(([id, value]) => {
+                            const el = document.getElementById(id);
+                            if (el) el.value = value;
+                        });
+                    }
+                    return true;
+                }
+            } catch (e) { /* ignore */ }
+            return false;
+        }
+
+        function saveState() {
+            const formData = {};
+            document.querySelectorAll('.insurance-form input, .insurance-form select').forEach(el => {
+                if (el.id && el.value) formData[el.id] = el.value;
+            });
+            const state = {
+                currentStep,
+                insuranceType,
+                calculatedBasePrice,
+                calculatedCoefficients,
+                selectedOptions,
+                finalPrice,
+                formData,
+            };
+            try {
+                localStorage.setItem('insureflow_state', JSON.stringify(state));
+            } catch (e) { /* ignore */ }
+        }
+
+        function clearState() {
+            localStorage.removeItem('insureflow_state');
+            currentStep = 1;
+            insuranceType = null;
+            calculatedBasePrice = 0;
+            calculatedCoefficients = {};
+            selectedOptions = {};
+            finalPrice = 0;
+            document.querySelectorAll('.insurance-form input, .insurance-form select').forEach(el => {
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else if (el.type === 'number' && (el.id === 'accidents' || el.id === 'travelPersons'))
+                    el.value = el.id === 'travelPersons' ? '1' : '0';
+                else el.value = '';
+            });
+            document.querySelectorAll('.insurance-card').forEach(c => c.classList.remove('card-selected'));
+            document.getElementById('optionsContainer').innerHTML = '';
+            document.getElementById('resultsContainer').innerHTML = '';
+            document.getElementById('step1Error').classList.add('hidden');
+            document.getElementById('step2Error').classList.add('hidden');
+            resetBtn.classList.add('hidden');
+        }
+
+        // ==================== ТЕМА ====================
+        function setTheme(dark) {
+            if (dark) {
+                html.classList.add('dark');
+                html.classList.remove('light');
+            } else {
+                html.classList.remove('dark');
+                html.classList.add('light');
+            }
+            try { localStorage.setItem('insureflow_theme', dark ? 'dark' : 'light'); } catch (e) { /* ignore */ }
+        }
+
+        function toggleTheme() {
+            setTheme(!html.classList.contains('dark'));
+        }
+
+        // Инициализация темы
+        const savedTheme = localStorage.getItem('insureflow_theme');
+        if (savedTheme === 'dark') setTheme(true);
+        else if (savedTheme === 'light') setTheme(false);
+        else if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme(true);
+        else setTheme(false);
+
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // ==================== TOAST ====================
+        let toastTimeout;
+
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 2500);
+        }
+
+        // ==================== ОБНОВЛЕНИЕ UI ШАГОВ ====================
+        function updateStepUI() {
+            // Показываем/скрываем секции
+            Object.entries(steps).forEach(([step, el]) => {
+                if (parseInt(step) === currentStep) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+
+            // Прогресс-бар
+            const percent = Math.round((currentStep / 4) * 100);
+            progressFill.style.width = percent + '%';
+            currentStepLabel.textContent = currentStep;
+            progressPercent.textContent = percent + '%';
+
+            // Точки шагов
+            stepDots.forEach(dot => {
+                const stepNum = parseInt(dot.dataset.step);
+                dot.classList.remove('bg-brand-500', 'text-white', 'shadow-md', 'shadow-brand-500/30',
+                    'bg-gray-200', 'dark:bg-navy-800', 'text-gray-500', 'dark:text-gray-400');
+                if (stepNum <= currentStep) {
+                    dot.classList.add('bg-brand-500', 'text-white', 'shadow-md', 'shadow-brand-500/30');
+                } else {
+                    dot.classList.add('bg-gray-200', 'dark:bg-navy-800', 'text-gray-500',
+                    'dark:text-gray-400');
+                }
+            });
+
+            // Кнопки навигации
+            prevBtn.disabled = currentStep === 1;
+            if (currentStep === 4) {
+                nextBtn.textContent = 'Оформить полис';
+                nextBtn.innerHTML =
+                    'Оформить полис <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
+            } else {
+                nextBtn.textContent = 'Далее';
+                nextBtn.innerHTML =
+                    'Далее <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>';
+            }
+
+            // Кнопка сброса
+            if (currentStep > 1 || insuranceType) {
+                resetBtn.classList.remove('hidden');
+            } else {
+                resetBtn.classList.add('hidden');
+            }
+
+            saveState();
+        }
+
+        // ==================== ВЫБОР ТИПА СТРАХОВАНИЯ (Шаг 1) ====================
+        document.querySelectorAll('.insurance-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.insurance-card').forEach(c => c.classList.remove(
+                    'card-selected'));
+                this.classList.add('card-selected');
+                insuranceType = this.dataset.type;
+                document.getElementById('step1Error').classList.add('hidden');
+                // Показываем нужную форму
+                Object.values(forms).forEach(f => f.classList.add('hidden'));
+                if (forms[insuranceType]) forms[insuranceType].classList.remove('hidden');
+                // Обновляем подзаголовок шага 2
+                const subtitles = {
+                    auto: 'Заполните данные об автомобиле и водителе',
+                    property: 'Укажите параметры недвижимости',
+                    health: 'Заполните данные для расчёта ДМС',
+                    travel: 'Укажите детали поездки',
+                };
+                document.getElementById('step2Subtitle').textContent = subtitles[insuranceType] ||
+                    'Заполните информацию для точного расчёта стоимости';
+                saveState();
+            });
+        });
+
+        // ==================== ОПЦИИ (Шаг 3) ====================
+        function getOptionsForType(type) {
+            const optionsMap = {
+                auto: [
+                    { id: 'roadside', label: 'Помощь на дороге', desc: 'Эвакуация, подвоз топлива, замена колеса',
+                        priceImpact: 800, icon: '🔧' },
+                    { id: 'legal_auto', label: 'Юридическая защита', desc: 'Помощь при ДТП, суды, экспертиза',
+                        priceImpact: 500, icon: '⚖️' },
+                    { id: 'rental', label: 'Подменный автомобиль', desc: 'Аренда авто на время ремонта',
+                        priceImpact: 1200, icon: '🚙' },
+                    { id: 'full_casco', label: 'Полное КАСКО', desc: 'Расширенное покрытие including угон и стихийные бедствия',
+                        priceImpact: 'percent:25', icon: '🛡️' },
+                ],
+                property: [
+                    { id: 'flood', label: 'Защита от затопления', desc: 'Покрытие ущерба от протечек и затоплений',
+                        priceImpact: 'percent:15', icon: '💧' },
+                    { id: 'theft_property', label: 'Страхование от кражи', desc: 'Защита имущества от кражи со взломом',
+                        priceImpact: 'percent:10', icon: '🔒' },
+                    { id: 'liability', label: 'Гражданская ответственность',
+                        desc: 'Ущерб соседям и третьим лицам', priceImpact: 600, icon: '🤝' },
+                    { id: 'fire', label: 'Защита от пожара', desc: 'Расширенное покрытие пожарных рисков',
+                        priceImpact: 'percent:12', icon: '🔥' },
+                ],
+                health: [
+                    { id: 'dental', label: 'Стоматология', desc: 'Лечение и профилактика зубов', priceImpact: 2000,
+                        icon: '🦷' },
+                    { id: 'sports', label: 'Спортивные травмы', desc: 'Расширенное покрытие для занятий спортом',
+                        priceImpact: 1500, icon: '🏃' },
+                    { id: 'vision', label: 'Коррекция зрения', desc: 'Очки, линзы, лазерная коррекция',
+                        priceImpact: 1800, icon: '👓' },
+                    { id: 'abroad', label: 'Лечение за рубежом', desc: 'Покрытие медицинских расходов в других странах',
+                        priceImpact: 'percent:30', icon: '🌍' },
+                ],
+                travel: [
+                    { id: 'adventure', label: 'Экстремальные виды спорта',
+                        desc: 'Дайвинг, горные лыжи, сёрфинг', priceImpact: 'percent:30', icon: '🏔️' },
+                    { id: 'electronics', label: 'Страхование электроники', desc: 'Ноутбук, камера, телефон',
+                        priceImpact: 500, icon: '📱' },
+                    { id: 'cancellation', label: 'Отмена поездки', desc: 'Возврат при отмене по уважительной причине',
+                        priceImpact: 'percent:20', icon: '❌' },
+                    { id: 'baggage', label: 'Страхование багажа', desc: 'Задержка, утеря или кража багажа',
+                        priceImpact: 400, icon: '🧳' },
+                ],
+            };
+            return optionsMap[type] || [];
+        }
+
+        function renderOptions() {
+            const container = document.getElementById('optionsContainer');
+            const options = getOptionsForType(insuranceType);
+            container.innerHTML = options.map(opt => {
+                const priceText = typeof opt.priceImpact === 'string' && opt.priceImpact.startsWith(
+                    'percent') ?
+                    `+${opt.priceImpact.split(':')[1]}% к базовой цене` :
+                    `+${opt.priceImpact.toLocaleString('ru-RU')} ₽`;
+                const checked = selectedOptions[opt.id] ? 'checked' : '';
+                return `
+                    <label class="flex items-start gap-4 p-4 sm:p-5 bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 transition-all duration-200 group">
+                        <input type="checkbox" class="option-checkbox mt-1 w-5 h-5 rounded-lg text-brand-500 focus:ring-brand-500 border-gray-300 dark:border-gray-600 dark:bg-navy-800" data-opt-id="${opt.id}" ${checked}>
+                        <span class="text-2xl flex-shrink-0">${opt.icon}</span>
+                        <span class="flex-1 min-w-0">
+                            <span class="block font-semibold text-navy-900 dark:text-white">${opt.label}</span>
+                            <span class="block text-sm text-gray-500 dark:text-gray-400 mt-0.5">${opt.desc}</span>
+                        </span>
+                        <span class="flex-shrink-0 text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 px-3 py-1.5 rounded-full whitespace-nowrap">${priceText}</span>
+                    </label>`;
+            }).join('');
+
+            // Обработчики чекбоксов
+            container.querySelectorAll('.option-checkbox').forEach(cb => {
+                cb.addEventListener('change', function() {
+                    selectedOptions[this.dataset.optId] = this.checked;
+                    saveState();
+                });
+            });
+        }
+
+        // ==================== РАСЧЁТ ЦЕНЫ ====================
+        /*
+         * ФОРМУЛЫ РАСЧЁТА (реалистичные, основаны на страховой практике РФ):
+         *
+         * === АВТОСТРАХОВАНИЕ (ОСАГО-подобная модель) ===
+         * Базовая ставка зависит от региона:
+         *   Москва: 5500₽, СПб: 4800₽, Казань/Новосибирск/Екатеринбург: 4000₽, другие: 3500₽
+         *
+         * Коэффициенты:
+         * - Возраст водителя (K_age):
+         *   <22 лет: 1.8 | 22-25: 1.6 | 25-35: 1.0 | 35-50: 0.9 | >50: 0.85
+         * - Стаж вождения (K_exp):
+         *   <1 года: 1.8 | 1-3: 1.6 | 3-5: 1.2 | 5-10: 1.0 | >10: 0.85
+         * - Мощность двигателя (K_power):
+         *   <100 л.с.: 0.9 | 100-150: 1.2 | 150-200: 1.5 | >200: 1.8
+         * - Возраст авто (K_vehicle_age):
+         *   <1 года: 1.3 | 1-3: 1.1 | 3-7: 1.0 | 7-10: 1.2 | >10: 1.5
+         * - Бонус-малус (K_bm) — зависит от числа страховых случаев за 3 года:
+         *   0 случаев: 0.5 | 1: 0.8 | 2: 1.0 | 3-4: 1.5 | >4: 2.0
+         * - Регион (K_region): Москва 1.8, СПб 1.6, остальные 1.0 (уже учтено в базе)
+         * - Стоимость авто (K_value): 1 + (стоимость / 5_000_000) * 0.4
+         *
+         * ИТОГО (ОСАГО): Base * K_age * K_exp * K_power * K_vehicle_age * K_bm * K_value
+         * КАСКО-надбавка: стоимость_авто * 0.035 (добавляется если выбрано КАСКО)
+         *
+         * === НЕДВИЖИМОСТЬ ===
+         * База: квартира 2500₽, дом 4000₽, таунхаус 3200₽
+         * - Площадь (K_area): <30м²:0.7 | 30-60:1.0 | 60-100:1.4 | >100:1.8
+         * - Год постройки (K_year): >2015:0.8 | 2000-2015:1.0 | 1980-2000:1.3 | <1980:1.6
+         * - Безопасность (K_sec): нет:1.5 | сигнализация:1.0 | ЧОП:0.7
+         * - Регион (K_reg): Москва 1.5, СПб 1.3, другие 1.0
+         * - Стоимость (K_val): 1 + (стоимость / 10_000_000) * 0.3
+         * ИТОГО: Base * K_area * K_year * K_sec * K_reg * K_val
+         *
+         * === ЗДОРОВЬЕ ===
+         * База: 6000₽
+         * - Возраст (K_age): <18:0.7 | 18-30:0.85 | 30-45:1.0 | 45-60:1.5 | >60:2.2
+         * - Покрытие (K_cov): 500k:0.7 | 1M:1.0 | 3M:1.8 | 5M:2.5
+         * - Срок (K_term): множитель срока (1 год=1.0, 2=1.85, 3=2.6, 5=3.8)
+         * ИТОГО: Base * K_age * K_cov * K_term
+         *
+         * === ПУТЕШЕСТВИЯ ===
+         * База: 1200₽
+         * - Направление (K_dest): РФ:0.6 | Европа:1.0 | Азия:0.9 | Америка:1.4 | Экзотика:1.8
+         * - Длительность (K_days): дни * 80₽ (но min 1.0 множитель к базе)
+         * - Возраст (K_age_t): <25:0.8 | 25-50:1.0 | 50-65:1.4 | >65:2.0
+         * - Кол-во человек: умножаем на количество
+         * ИТОГО: (Base * K_dest + days*80) * K_age_t * persons
+         */
+        function calculatePrice() {
+            if (!insuranceType) return 0;
+            let base = 0;
+            let coefficients = {};
+            let total = 0;
+
+            if (insuranceType === 'auto') {
+                const driverAge = parseInt(document.getElementById('driverAge')?.value) || 30;
+                const drivingExp = parseInt(document.getElementById('drivingExp')?.value) || 5;
+                const enginePower = parseInt(document.getElementById('enginePower')?.value) || 150;
+                const carYearVal = parseInt(document.getElementById('carYear')?.value) || 2020;
+                const carValue = parseInt(document.getElementById('carValue')?.value) || 1500000;
+                const region = document.getElementById('region')?.value || 'other';
+                const accidents = parseInt(document.getElementById('accidents')?.value) || 0;
+                const currentYear = new Date().getFullYear();
+                const vehicleAge = currentYear - carYearVal;
+
+                // Базовая ставка по региону
+                const baseRates = { moscow: 5500, spb: 4800, kazan: 4000, novosibirsk: 4000, ekaterinburg: 4000,
+                    other: 3500 };
+                base = baseRates[region] || 3500;
+
+                // K_age
+                let kAge = 1.0;
+                if (driverAge < 22) kAge = 1.8;
+                else if (driverAge <= 25) kAge = 1.6;
+                else if (driverAge <= 35) kAge = 1.0;
+                else if (driverAge <= 50) kAge = 0.9;
+                else kAge = 0.85;
+                coefficients['Возраст водителя'] = { value: kAge, explanation: `${driverAge} лет → коэффициент ${kAge}` };
+
+                // K_exp
+                let kExp = 1.0;
+                if (drivingExp < 1) kExp = 1.8;
+                else if (drivingExp <= 3) kExp = 1.6;
+                else if (drivingExp <= 5) kExp = 1.2;
+                else if (drivingExp <= 10) kExp = 1.0;
+                else kExp = 0.85;
+                coefficients['Стаж вождения'] = { value: kExp, explanation: `${drivingExp} лет → коэффициент ${kExp}` };
+
+                // K_power
+                let kPower = 1.0;
+                if (enginePower < 100) kPower = 0.9;
+                else if (enginePower <= 150) kPower = 1.2;
+                else if (enginePower <= 200) kPower = 1.5;
+                else kPower = 1.8;
+                coefficients['Мощность двигателя'] = { value: kPower,
+                    explanation: `${enginePower} л.с. → коэффициент ${kPower}` };
+
+                // K_vehicle_age
+                let kVehicleAge = 1.0;
+                if (vehicleAge < 1) kVehicleAge = 1.3;
+                else if (vehicleAge <= 3) kVehicleAge = 1.1;
+                else if (vehicleAge <= 7) kVehicleAge = 1.0;
+                else if (vehicleAge <= 10) kVehicleAge = 1.2;
+                else kVehicleAge = 1.5;
+                coefficients['Возраст автомобиля'] = { value: kVehicleAge,
+                    explanation: `${vehicleAge} лет → коэффициент ${kVehicleAge}` };
+
+                // K_bm (бонус-малус)
+                let kBm = 1.0;
+                if (accidents === 0) kBm = 0.5;
+                else if (accidents === 1) kBm = 0.8;
+                else if (accidents === 2) kBm = 1.0;
+                else if (accidents <= 4) kBm = 1.5;
+                else kBm = 2.0;
+                coefficients['Бонус-малус (аварии)'] = { value: kBm,
+                    explanation: `${accidents} случаев за 3 года → КБМ ${kBm}` };
+
+                // K_value
+                const kValue = 1 + (carValue / 5000000) * 0.4;
+                coefficients['Стоимость автомобиля'] = { value: +kValue.toFixed(2),
+                    explanation: `${carValue.toLocaleString('ru-RU')} ₽ → коэффициент ${kValue.toFixed(2)}` };
+
+                total = base * kAge * kExp * kPower * kVehicleAge * kBm * kValue;
+
+                // КАСКО-надбавка если выбрано
+                if (selectedOptions['full_casco']) {
+                    const cascoAddon = carValue * 0.035;
+                    coefficients['КАСКО (расширенное)'] = { value: '+ ' + Math.round(cascoAddon).toLocaleString(
+                            'ru-RU') + ' ₽',
+                        explanation: 'Добавлено полное КАСКО' };
+                    total += cascoAddon;
+                }
+
+            } else if (insuranceType === 'property') {
+                const propertyType = document.getElementById('propertyType')?.value || 'apartment';
+                const area = parseInt(document.getElementById('propertyArea')?.value) || 55;
+                const buildYear = parseInt(document.getElementById('buildingYear')?.value) || 2010;
+                const propValue = parseInt(document.getElementById('propertyValue')?.value) || 5000000;
+                const security = document.getElementById('securityLevel')?.value || 'none';
+                const propRegion = document.getElementById('propertyRegion')?.value || 'other';
+                const currentYear = new Date().getFullYear();
+                const buildingAge = currentYear - buildYear;
+
+                const baseMap = { apartment: 2500, house: 4000, townhouse: 3200 };
+                base = baseMap[propertyType] || 2500;
+
+                let kArea = 1.0;
+                if (area < 30) kArea = 0.7;
+                else if (area <= 60) kArea = 1.0;
+                else if (area <= 100) kArea = 1.4;
+                else kArea = 1.8;
+                coefficients['Площадь'] = { value: kArea, explanation: `${area} м² → коэффициент ${kArea}` };
+
+                let kYear = 1.0;
+                if (buildingAge < 9) kYear = 0.8;
+                else if (buildingAge <= 24) kYear = 1.0;
+                else if (buildingAge <= 44) kYear = 1.3;
+                else kYear = 1.6;
+                coefficients['Год постройки'] = { value: kYear,
+                    explanation: `${buildYear} год (${buildingAge} лет) → коэффициент ${kYear}` };
+
+                const secMap = { none: 1.5, alarm: 1.0, security_company: 0.7 };
+                const kSec = secMap[security] || 1.5;
+                coefficients['Безопасность'] = { value: kSec,
+                    explanation: `${security === 'none' ? 'Без охраны' : security === 'alarm' ? 'Сигнализация' : 'Охрана ЧОП'} → коэффициент ${kSec}` };
+
+                const regMap = { moscow: 1.5, spb: 1.3, other: 1.0 };
+                const kReg = regMap[propRegion] || 1.0;
+                coefficients['Регион'] = { value: kReg, explanation: `Коэффициент региона: ${kReg}` };
+
+                const kVal = 1 + (propValue / 10000000) * 0.3;
+                coefficients['Стоимость недвижимости'] = { value: +kVal.toFixed(2),
+                    explanation: `${propValue.toLocaleString('ru-RU')} ₽ → коэффициент ${kVal.toFixed(2)}` };
+
+                total = base * kArea * kYear * kSec * kReg * kVal;
+
+            } else if (insuranceType === 'health') {
+                const age = parseInt(document.getElementById('healthAge')?.value) || 35;
+                const coverage = parseInt(document.getElementById('healthCoverage')?.value) || 1000000;
+                const term = parseInt(document.getElementById('healthTerm')?.value) || 1;
+
+                base = 6000;
+
+                let kAge = 1.0;
+                if (age < 18) kAge = 0.7;
+                else if (age <= 30) kAge = 0.85;
+                else if (age <= 45) kAge = 1.0;
+                else if (age <= 60) kAge = 1.5;
+                else kAge = 2.2;
+                coefficients['Возраст'] = { value: kAge, explanation: `${age} лет → коэффициент ${kAge}` };
+
+                const covMap = { 500000: 0.7, 1000000: 1.0, 3000000: 1.8, 5000000: 2.5 };
+                const kCov = covMap[coverage] || 1.0;
+                coefficients['Сумма покрытия'] = { value: kCov,
+                    explanation: `${coverage.toLocaleString('ru-RU')} ₽ → коэффициент ${kCov}` };
+
+                const termMap = { 1: 1.0, 2: 1.85, 3: 2.6, 5: 3.8 };
+                const kTerm = termMap[term] || 1.0;
+                coefficients['Срок'] = { value: kTerm, explanation: `${term} год(а) → коэффициент ${kTerm}` };
+
+                total = base * kAge * kCov * kTerm;
+
+            } else if (insuranceType === 'travel') {
+                const destination = document.getElementById('travelDestination')?.value || 'europe';
+                const days = parseInt(document.getElementById('travelDays')?.value) || 14;
+                const age = parseInt(document.getElementById('travelAge')?.value) || 30;
+                const persons = parseInt(document.getElementById('travelPersons')?.value) || 1;
+
+                base = 1200;
+
+                const destMap = { russia: 0.6, europe: 1.0, asia: 0.9, america: 1.4, exotic: 1.8 };
+                const kDest = destMap[destination] || 1.0;
+                coefficients['Направление'] = { value: kDest, explanation: `Коэффициент направления: ${kDest}` };
+
+                const daysComponent = days * 80;
+                coefficients['Длительность'] = { value: `+ ${daysComponent} ₽`,
+                    explanation: `${days} дней × 80₽ = ${daysComponent} ₽` };
+
+                let kAge = 1.0;
+                if (age < 25) kAge = 0.8;
+                else if (age <= 50) kAge = 1.0;
+                else if (age <= 65) kAge = 1.4;
+                else kAge = 2.0;
+                coefficients['Возраст путешественника'] = { value: kAge, explanation: `${age} лет → коэффициент ${kAge}` };
+
+                total = (base * kDest + daysComponent) * kAge * persons;
+                coefficients['Количество человек'] = { value: `× ${persons}`,
+                    explanation: `${persons} чел. → умножаем на ${persons}` };
+            }
+
+            // Применяем дополнительные опции с фиксированной ценой
+            const options = getOptionsForType(insuranceType);
+            options.forEach(opt => {
+                if (selectedOptions[opt.id] && typeof opt.priceImpact === 'number') {
+                    total += opt.priceImpact;
+                    coefficients[opt.label] = { value: `+ ${opt.priceImpact} ₽`,
+                        explanation: 'Дополнительная опция' };
+                }
+                if (selectedOptions[opt.id] && typeof opt.priceImpact === 'string' && opt.priceImpact
+                    .startsWith('percent')) {
+                    const pct = parseInt(opt.priceImpact.split(':')[1]) || 0;
+                    const addon = total * (pct / 100);
+                    total += addon;
+                    coefficients[opt.label] = { value: `+ ${pct}% (${Math.round(addon).toLocaleString('ru-RU')} ₽)`,
+                        explanation: `Надбавка ${pct}% к базовой стоимости` };
+                }
+            });
+
+            calculatedBasePrice = Math.round(base);
+            calculatedCoefficients = coefficients;
+            finalPrice = Math.round(total);
+            if (finalPrice < 500) finalPrice = 500; // Минимальная цена полиса
+            return finalPrice;
+        }
+
+        // ==================== ОЦЕНКА РИСКА ====================
+        function getRiskLevel() {
+            // Считаем произведение всех числовых коэффициентов
+            let product = 1.0;
+            let countNumeric = 0;
+            Object.values(calculatedCoefficients).forEach(coef => {
+                if (typeof coef.value === 'number' && coef.value > 0) {
+                    product *= coef.value;
+                    countNumeric++;
+                }
+            });
+            if (countNumeric === 0) product = 1.0;
+            // Нормализуем
+            const avgCoef = Math.pow(product, 1 / Math.max(countNumeric, 1));
+
+            if (avgCoef < 1.2) return { level: 'low', label: 'Низкий риск', colorClass: 'risk-low',
+                description: 'Отличные показатели! Вы получаете минимальную ставку.' };
+            if (avgCoef < 2.0) return { level: 'medium', label: 'Средний риск', colorClass: 'risk-medium',
+                description: 'Стандартные условия страхования.' };
+            return { level: 'high', label: 'Повышенный риск', colorClass: 'risk-high',
+                description: 'Высокие коэффициенты из-за факторов риска. Рекомендуем рассмотреть дополнительные меры безопасности.' };
+        }
+
+        // ==================== ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ (Шаг 4) ====================
+        function renderResults() {
+            const price = calculatePrice();
+            const risk = getRiskLevel();
+            const container = document.getElementById('resultsContainer');
+
+            // Тарифы
+            const economyPrice = Math.round(price * 0.75);
+            const standardPrice = price;
+            const premiumPrice = Math.round(price * 1.45);
+
+            const typeLabels = {
+                auto: 'Автострахование',
+                property: 'Недвижимость',
+                health: 'Здоровье и жизнь',
+                travel: 'Путешествия',
+            };
+
+            // Собираем разбивку коэффициентов
+            let coefBreakdownHTML = '';
+            Object.entries(calculatedCoefficients).forEach(([name, data]) => {
+                coefBreakdownHTML += `
+                    <div class="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                        <span class="text-sm text-gray-600 dark:text-gray-400 tooltip-trigger">${name}</span>
+                        <span class="tooltip-content absolute z-20 right-0 bg-navy-900 dark:bg-white text-white dark:text-navy-900 text-xs rounded-lg px-3 py-2 shadow-xl max-w-[220px] block text-right">${data.explanation}</span>
+                        <span class="text-sm font-semibold text-navy-900 dark:text-white">${typeof data.value === 'number' ? '×' + data.value.toFixed(2) : data.value}</span>
+                    </div>`;
+            });
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Заголовок -->
+                    <div class="text-center">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold ${risk.colorClass} mb-3">${risk.label}</span>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-navy-900 dark:text-white">${typeLabels[insuranceType] || 'Страхование'}</h2>
+                        <p class="text-gray-500 dark:text-gray-400 mt-1">${risk.description}</p>
+                    </div>
+
+                    <!-- Итоговая цена -->
+                    <div class="bg-white dark:bg-navy-900 border-2 border-brand-200 dark:border-brand-800 rounded-3xl p-6 sm:p-8 text-center shadow-xl shadow-brand-500/5">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Итоговая стоимость полиса</p>
+                        <div class="text-5xl sm:text-6xl font-black text-navy-900 dark:text-white tracking-tight">${finalPrice.toLocaleString('ru-RU')} <span class="text-2xl font-medium text-gray-400">₽</span></div>
+                        <p class="text-sm text-gray-400 mt-2">за ${insuranceType === 'travel' ? 'поездку' : 'год'}</p>
+                        <div class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full ${risk.colorClass} text-sm font-medium">${risk.label}</div>
+                    </div>
+
+                    <!-- Сравнение тарифов -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-3">Варианты тарифов</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div class="bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-center hover:border-brand-300 dark:hover:border-brand-700 transition-all duration-200">
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Эконом</span>
+                                <div class="text-2xl font-bold text-navy-900 dark:text-white mt-2">${economyPrice.toLocaleString('ru-RU')} ₽</div>
+                                <p class="text-xs text-gray-400 mt-2">Базовое покрытие<br>Без доп. опций</p>
+                            </div>
+                            <div class="bg-brand-50 dark:bg-brand-900/20 border-2 border-brand-500 rounded-2xl p-4 text-center relative shadow-lg shadow-brand-500/10">
+                                <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full">Рекомендуем</span>
+                                <span class="text-xs font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wide mt-2 block">Стандарт</span>
+                                <div class="text-2xl font-bold text-navy-900 dark:text-white mt-2">${standardPrice.toLocaleString('ru-RU')} ₽</div>
+                                <p class="text-xs text-gray-400 mt-2">Оптимальное покрытие<br>С выбранными опциями</p>
+                            </div>
+                            <div class="bg-white dark:bg-navy-900 border-2 border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-center hover:border-brand-300 dark:hover:border-brand-700 transition-all duration-200">
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Премиум</span>
+                                <div class="text-2xl font-bold text-navy-900 dark:text-white mt-2">${premiumPrice.toLocaleString('ru-RU')} ₽</div>
+                                <p class="text-xs text-gray-400 mt-2">Максимальная защита<br>Все опции включены</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Разбивка коэффициентов -->
+                    <div class="bg-white dark:bg-navy-900 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 sm:p-6">
+                        <h3 class="text-lg font-semibold text-navy-900 dark:text-white mb-3">Детализация расчёта</h3>
+                        <div class="relative">${coefBreakdownHTML}</div>
+                        <div class="mt-4 pt-4 border-t-2 border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <span class="font-semibold text-navy-900 dark:text-white">Итого</span>
+                            <span class="text-xl font-bold text-brand-600 dark:text-brand-400">${finalPrice.toLocaleString('ru-RU')} ₽</span>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="applyPolicyBtn" class="flex-1 px-6 py-4 rounded-2xl font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-xl shadow-brand-500/25 hover:shadow-2xl hover:shadow-brand-500/30 transition-all duration-300 text-lg">
+                            🛡️ Оформить полис
+                        </button>
+                        <button id="downloadPdfBtn" class="flex-1 px-6 py-4 rounded-2xl font-semibold text-navy-900 dark:text-white bg-white dark:bg-navy-900 border-2 border-gray-300 dark:border-gray-600 hover:border-brand-400 dark:hover:border-brand-500 transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Скачать отчёт (PDF)
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Обработчики для кнопок в результатах
+            setTimeout(() => {
+                const applyBtn = document.getElementById('applyPolicyBtn');
+                const downloadBtn = document.getElementById('downloadPdfBtn');
+                if (applyBtn) {
+                    applyBtn.addEventListener('click', () => {
+                        showToast('🎉 Заявка на полис оформлена! Наш менеджер свяжется с вами.');
+                        applyBtn.textContent = '✅ Заявка отправлена';
+                        applyBtn.disabled = true;
+                        applyBtn.classList.add('opacity-70', 'cursor-not-allowed');
+                    });
+                }
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', downloadReport);
+                }
+            }, 100);
+
+            saveState();
+        }
+
+        // ==================== СКАЧИВАНИЕ ОТЧЁТА ====================
+        function downloadReport() {
+            const risk = getRiskLevel();
+            const typeLabels = { auto: 'Автострахование', property: 'Недвижимость', health: 'Здоровье и жизнь',
+                travel: 'Путешествия' };
+            let coefText = '';
+            Object.entries(calculatedCoefficients).forEach(([name, data]) => {
+                coefText +=
+                    `${name}: ${typeof data.value === 'number' ? '×' + data.value.toFixed(2) : data.value} — ${data.explanation}\n`;
+            });
+
+            const reportHTML = `
+                <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Отчёт InsureFlow</title>
+                <style>body{font-family:'Inter',sans-serif;max-width:700px;margin:40px auto;padding:20px;color:#1a2d52;line-height:1.6}
+                h1{color:#0f8b67;border-bottom:3px solid #1aab80;padding-bottom:10px}
+                .price{font-size:48px;font-weight:900;color:#1a2d52;margin:20px 0}
+                .risk{padding:8px 16px;border-radius:20px;display:inline-block;font-weight:600}
+                .risk-low{background:#d1fae5;color:#065f46}.risk-medium{background:#fef3c7;color:#92400e}.risk-high{background:#fee2e2;color:#991b1b}
+                table{width:100%;border-collapse:collapse;margin:20px 0}td,th{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
+                .footer{margin-top:40px;color:#9ca3af;font-size:12px}</style></head><body>
+                <h1>🛡️ InsureFlow — Страховой отчёт</h1>
+                <p>Тип: <strong>${typeLabels[insuranceType] || 'Страхование'}</strong> | Дата: ${new Date().toLocaleDateString('ru-RU')}</p>
+                <div class="price">${finalPrice.toLocaleString('ru-RU')} ₽</div>
+                <span class="risk risk-${risk.level}">${risk.label}</span>
+                <p>${risk.description}</p>
+                <h3>Детализация:</h3>
+                <table><tr><th>Коэффициент</th><th>Значение</th><th>Пояснение</th></tr>
+                ${Object.entries(calculatedCoefficients).map(([name,data]) => `<tr><td>${name}</td><td>${typeof data.value==='number'?'×'+data.value.toFixed(2):data.value}</td><td>${data.explanation}</td></tr>`).join('')}
+                <tr style="font-weight:bold;border-top:2px solid #1aab80;"><td>Итого</td><td colspan="2">${finalPrice.toLocaleString('ru-RU')} ₽</td></tr></table>
+                <div class="footer">Отчёт сгенерирован InsureFlow. Данный документ носит информационный характер.</div>
+                </body></html>`;
+
+            const blob = new Blob([reportHTML], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `InsureFlow_Отчёт_${new Date().toISOString().slice(0,10)}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('📄 Отчёт скачан! Откройте файл и нажмите Ctrl+P для сохранения в PDF.');
+        }
+
+        // ==================== ВАЛИДАЦИЯ ====================
+        function validateStep2() {
+            const errorEl = document.getElementById('step2Error');
+            errorEl.classList.add('hidden');
+            const requiredIds = {
+                auto: ['driverAge', 'drivingExp', 'carBrand', 'carModel', 'carYear', 'enginePower', 'carValue',
+                    'accidents'
+                ],
+                property: ['propertyArea', 'buildingYear', 'propertyValue'],
+                health: ['healthAge'],
+                travel: ['travelDays', 'travelAge'],
+            };
+            const ids = requiredIds[insuranceType] || [];
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el && (!el.value || el.value === '')) {
+                    errorEl.textContent = 'Пожалуйста, заполните все обязательные поля.';
+                    errorEl.classList.remove('hidden');
+                    el.focus();
+                    return false;
+                }
+            }
+            // Дополнительные проверки
+            if (insuranceType === 'auto') {
+                const age = parseInt(document.getElementById('driverAge').value);
+                const exp = parseInt(document.getElementById('drivingExp').value);
+                if (age - exp < 16) {
+                    errorEl.textContent = 'Стаж не может превышать (возраст − 16 лет). Проверьте данные.';
+                    errorEl.classList.remove('hidden');
+                    return false;
+                }
+                const carYear = parseInt(document.getElementById('carYear').value);
+                if (carYear > new Date().getFullYear() + 1) {
+                    errorEl.textContent = 'Год выпуска автомобиля указан некорректно.';
+                    errorEl.classList.remove('hidden');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function validateStep1() {
+            const errorEl = document.getElementById('step1Error');
+            if (!insuranceType) {
+                errorEl.textContent = 'Пожалуйста, выберите тип страхования.';
+                errorEl.classList.remove('hidden');
+                return false;
+            }
+            errorEl.classList.add('hidden');
+            return true;
+        }
+
+        // ==================== НАВИГАЦИЯ ====================
+        function goToStep(step) {
+            if (step < 1 || step > 4) return;
+            // Валидация при движении вперёд
+            if (step > currentStep) {
+                if (currentStep === 1 && !validateStep1()) return;
+                if (currentStep === 2 && !validateStep2()) return;
+                if (currentStep === 3) {
+                    // Пересчитываем перед показом результатов
+                    calculatePrice();
+                    renderResults();
+                }
+            }
+            currentStep = step;
+            if (currentStep === 3) renderOptions();
+            if (currentStep === 4) {
+                calculatePrice();
+                renderResults();
+            }
+            updateStepUI();
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+
+        nextBtn.addEventListener('click', () => {
+            if (currentStep === 4) {
+                // Кнопка "Оформить полис" на шаге 4
+                showToast('🎉 Заявка на полис оформлена! Наш менеджер свяжется с вами.');
+                const applyBtn = document.getElementById('applyPolicyBtn');
+                if (applyBtn) {
+                    applyBtn.textContent = '✅ Заявка отправлена';
+                    applyBtn.disabled = true;
+                    applyBtn.classList.add('opacity-70', 'cursor-not-allowed');
+                }
+                return;
+            }
+            goToStep(currentStep + 1);
+        });
+
+        prevBtn.addEventListener('click', () => goToStep(currentStep - 1));
+
+        // ==================== СБРОС ====================
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Вы уверены, что хотите начать заново? Все введённые данные будут удалены.')) {
+                clearState();
+                updateStepUI();
+                document.querySelectorAll('.insurance-card').forEach(c => c.classList.remove(
+                'card-selected'));
+                Object.values(forms).forEach(f => f.classList.add('hidden'));
+                document.getElementById('optionsContainer').innerHTML = '';
+                document.getElementById('resultsContainer').innerHTML = '';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('🔄 Данные сброшены. Начните заново.');
+            }
+        });
+
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        function init() {
+            const hasSavedState = loadState();
+            if (hasSavedState && insuranceType) {
+                // Восстанавливаем выбор карточки
+                document.querySelectorAll('.insurance-card').forEach(c => {
+                    if (c.dataset.type === insuranceType) c.classList.add('card-selected');
+                });
+                // Показываем нужную форму
+                Object.values(forms).forEach(f => f.classList.add('hidden'));
+                if (forms[insuranceType]) forms[insuranceType].classList.remove('hidden');
+                // Восстанавливаем опции если нужно
+                if (currentStep >= 3) renderOptions();
+                if (currentStep === 4) {
+                    calculatePrice();
+                    renderResults();
+                }
+                updateStepUI();
+                if (currentStep > 1) resetBtn.classList.remove('hidden');
+            } else {
+                updateStepUI();
+                document.getElementById('step2Subtitle').textContent =
+                    'Заполните информацию для точного расчёта стоимости';
+            }
+        }
+
+        init();
+
+        // ==================== СОХРАНЕНИЕ ПРИ ИЗМЕНЕНИИ ПОЛЕЙ ====================
+        document.querySelectorAll('.insurance-form input, .insurance-form select').forEach(el => {
+            el.addEventListener('change', saveState);
+            el.addEventListener('input', saveState);
+        });
+
+        console.log('🚀 InsureFlow — Калькулятор страхового полиса готов к работе.');
+        console.log('   Поддерживаемые типы: Авто | Недвижимость | Здоровье | Путешествия');
+        console.log('   Тёмная/светлая тема | Адаптивный дизайн | PDF-отчёт | localStorage');
+    })();
+</script>
+</body>
+</html>
